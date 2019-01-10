@@ -1,127 +1,86 @@
-import tkinter as tk
-from tkinter import *
-import time
+from numpy import sin, cos
 import numpy as np
+import matplotlib.pyplot as plt
+import scipy.integrate as integrate
+import matplotlib.animation as animation
 
-r1 = 100;
-r2 = 100;
-m1 = 10;
-m2 = 10;
-a1 = 0;
-a2 = 0;
-a1_v = 0;
-a2_v = 0;
-g = 1;
-
-##visual.scene.title = 'Pendulum'
-##visual.scene.height = visual.scene.width = 800
-##pivot = array([0,0,0]) 		# pivot position of pendulum
-##visual.scene.center = pivot	                   # graphics cente
-
-tk = Tk()
-canvas = Canvas(tk, width = 500, height = 300)
-tk.title("Double Pendulum")
-canvas.pack()
+G = 9.8  # acceleration due to gravity, in m/s^2
+L1 = 1.0  # length of pendulum 1 in m
+L2 = 1.0  # length of pendulum 2 in m
+M1 = 1.0  # mass of pendulum 1 in kg
+M2 = 1.0  # mass of pendulum 2 in kg
 
 
-sx = 250
-sy = 100
+def derivs(state, t):
 
-start_x = 500/2
-start_y = 10
+    dydx = np.zeros_like(state)
+    dydx[0] = state[1]
 
-x1 = (r1 * np.sin(a1)) + start_x
-y1 = (r1 * np.cos(a1)) + start_y
+    del_ = state[2] - state[0]
+    den1 = (M1 + M2)*L1 - M2*L1*cos(del_)*cos(del_)
+    dydx[1] = (M2*L1*state[1]*state[1]*sin(del_)*cos(del_) +
+               M2*G*sin(state[2])*cos(del_) +
+               M2*L2*state[3]*state[3]*sin(del_) -
+               (M1 + M2)*G*sin(state[0]))/den1
 
-x2 = x1 + r2 * np.sin(a2)
-y2 = y1 + r2 * np.cos(a2)
+    dydx[2] = state[3]
+
+    den2 = (L2/L1)*den1
+    dydx[3] = (-M2*L2*state[3]*state[3]*sin(del_)*cos(del_) +
+               (M1 + M2)*G*sin(state[0])*cos(del_) -
+               (M1 + M2)*L1*state[1]*state[1]*sin(del_) -
+               (M1 + M2)*G*sin(state[2]))/den2
+
+    return dydx
+
+# create a time array from 0..100 sampled at 0.05 second steps
+dt = 0.05
+t = np.arange(0.0, 20, dt)
+
+# th1 and th2 are the initial angles (degrees)
+# w10 and w20 are the initial angular velocities (degrees per second)
+th1 = 120.0
+w1 = 0.0
+th2 = -10.0
+w2 = 0.0
+
+# initial state
+state = np.radians([th1, w1, th2, w2])
+
+# integrate your ODE using scipy.integrate.
+y = integrate.odeint(derivs, state, t)
+
+x1 = L1*sin(y[:, 0])
+y1 = -L1*cos(y[:, 0])
+
+x2 = L2*sin(y[:, 2]) + x1
+y2 = -L2*cos(y[:, 2]) + y1
+
+fig = plt.figure()
+ax = fig.add_subplot(111, autoscale_on=False, xlim=(-2, 2), ylim=(-2, 2))
+ax.grid()
+
+line, = ax.plot([], [], 'o-', lw=2)
+time_template = 'time = %.1fs'
+time_text = ax.text(0.05, 0.9, '', transform=ax.transAxes)
 
 
-line1 = canvas.create_line(start_x, start_y, x1, y1)
-
-ball = canvas.create_oval(x1 - m1/2, y1 - m1/2, x1 + m1/2, y1 + m1/2, fill='black')
-
-line1 = canvas.create_line(x1, y1, x2, y2)
-
-ball2 = canvas.create_oval(x2 - m2/2, y2 - m2/2, x2 + m2/2, y2 + m2/2, fill='black')
+def init():
+    line.set_data([], [])
+    time_text.set_text('')
+    return line, time_text
 
 
-for i in range(100):
-    canvas.move(ball, 0, 0)
-    canvas.move(ball2, 0, 0)
-    tk.update()
-    time.sleep(0.01)
+def animate(i):
+    thisx = [0, x1[i], x2[i]]
+    thisy = [0, y1[i], y2[i]]
 
-tk.mainloop()
+    line.set_data(thisx, thisy)
+    time_text.set_text(time_template % (i*dt))
+    return line, time_text
 
-##px2 = -1;
-##py2 = -1;
-##cx, cy;
+ani = animation.FuncAnimation(fig, animate, np.arange(1, len(y)),
+                              interval=25, blit=True, init_func=init)
 
-##let buffer;
-
-##function setup() {
-##  createCanvas(500, 300);
-##  pixelDensity(1);
-##  a1 = PI / 2;
-##  a2 = PI / 2;
-##  cx = width / 2;
-##  cy = 50;
-##  buffer = createGraphics(width, height);
-##  buffer.background(175);
-##  buffer.translate(cx, cy);
-##}
-
-##function draw() {
-##  background(175);
-##  imageMode(CORNER);
-##  image(buffer, 0, 0, width, height);
-
-##num1 = -g * (2 * m1 + m2) * sin(a1);
-##num2 = -m2 * g * sin(a1 - 2 * a2);
-##num3 = -2 * sin(a1 - a2) * m2;
-##num4 = a2_v * a2_v * r2 + a1_v * a1_v * r1 * cos(a1 - a2);
-##den = r1 * (2 * m1 + m2 - m2 * cos(2 * a1 - 2 * a2));
-##a1_a = (num1 + num2 + num3 * num4) / den;
-##
-##num1 = 2 * sin(a1 - a2);
-##num2 = (a1_v * a1_v * r1 * (m1 + m2));
-##num3 = g * (m1 + m2) * cos(a1);
-##num4 = a2_v * a2_v * r2 * m2 * cos(a1 - a2);
-##den = r2 * (2 * m1 + m2 - m2 * cos(2 * a1 - 2 * a2));
-##a2_a = (num1 * (num2 + num3 + num4)) / den;
-
-##  translate(cx, cy);
-##  stroke(0);
-##  strokeWeight(2);
-
-##x1 = r1 * sin(a1);
-##y1 = r1 * cos(a1);
-##
-##x2 = x1 + r2 * sin(a2);
-##y2 = y1 + r2 * cos(a2);
-##
-##line(0, 0, x1, y1);
-##fill(0);
-##ellipse(x1, y1, m1, m1);
-##
-##line(x1, y1, x2, y2);
-##fill(0);
-##ellipse(x2, y2, m2, m2);
-##
-##a1_v += a1_a;
-##a2_v += a2_a;
-##a1 += a1_v;
-##a2 += a2_v;
-
-##  // a1_v *= 0.99;
-##  // a2_v *= 0.99;
-
-##  buffer.stroke(0);
-##  if (frameCount > 1) {
-##    buffer.line(px2, py2, x2, y2);
-##  }
-##
-##  px2 = x2;
-##  py2 = y2;
-##}
+# ani.save('double_pendulum.mp4', fps=15)
+plt.show()
