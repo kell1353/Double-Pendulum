@@ -1,9 +1,10 @@
 import tkinter as tk
 from tkinter import *
 import time
+import numpy as np
 
-r1 = 125;
-r2 = 125;
+r1 = 100;
+r2 = 100;
 m1 = 10;
 m2 = 10;
 a1 = 0;
@@ -26,19 +27,23 @@ canvas.pack()
 sx = 250
 sy = 100
 
-##x1 = r1 * sin(a1)
-##y1 = r1 * cos(a1)
-##
-##x2 = x1 + r2 * sin(a2)
-##y2 = y1 + r2 * cos(a2)
+start_x = 500/2
+start_y = 10
 
-line1 = canvas.create_line(sx, 10, sx, sy)
+x1 = (r1 * np.sin(a1)) + start_x
+y1 = (r1 * np.cos(a1)) + start_y
 
-ball = canvas.create_oval(sx-m1/2, sy-m1/2, sx+m1/2, sy+m1/2, fill='black')
+x2 = x1 + r2 * np.sin(a2)
+y2 = y1 + r2 * np.cos(a2)
 
-line1 = canvas.create_line(sx, sy-m1/2, sx, 200)
 
-ball2 = canvas.create_oval(sx - m2/2, 200 - m2/2, sx + m2/2, 200 + m2/2, fill='black')
+line1 = canvas.create_line(start_x, start_y, x1, y1)
+
+ball = canvas.create_oval(x1 - m1/2, y1 - m1/2, x1 + m1/2, y1 + m1/2, fill='black')
+
+line1 = canvas.create_line(x1, y1, x2, y2)
+
+ball2 = canvas.create_oval(x2 - m2/2, y2 - m2/2, x2 + m2/2, y2 + m2/2, fill='black')
 
 
 for i in range(100):
@@ -46,11 +51,6 @@ for i in range(100):
     canvas.move(ball2, 0, 0)
     tk.update()
     time.sleep(0.01)
-
-##for i in range(100):
-##    canvas.move(ball2, 0, 0)
-##    tk.update()
-##    time.sleep(0.01)
 
 tk.mainloop()
 
